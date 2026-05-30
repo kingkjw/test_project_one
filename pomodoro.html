@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>番茄钟</title>
+<style>
+  :root {
+    --work: #e74c3c;
+    --short-break: #2ecc71;
+    --long-break: #3498db;
+    --bg: #1a1a2e;
+    --card: #16213e;
+    --text: #eee;
+    --muted: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.5s;
+  }
+
+  .container {
+    text-align: center;
+    padding: 2rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .mode-tabs {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .mode-tab {
+    padding: 0.5rem 1.2rem;
+    border: 1px solid #333;
+    border-radius: 2rem;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+  }
+
+  .mode-tab:hover { border-color: #555; color: var(--text); }
+  .mode-tab.active { border-color: var(--current-color); color: var(--text); background: rgba(255,255,255,0.05); }
+
+  .timer-ring {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    margin: 0 auto 2rem;
+  }
+
+  .timer-ring svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+  }
+
+  .timer-ring circle {
+    fill: none;
+    stroke-width: 4;
+  }
+
+  .track { stroke: #2a2a3e; }
+  .progress {
+    stroke: var(--current-color);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s linear, stroke 0.3s;
+  }
+
+  .timer-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4rem;
+    font-weight: 200;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+
+  .timer-label {
+    position: absolute;
+    top: 65%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+
+  .controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .btn {
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 2rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-primary {
+    background: var(--current-color);
+    color: #fff;
+    min-width: 140px;
+  }
+
+  .btn-primary:hover { filter: brightness(1.1); transform: scale(1.03); }
+  .btn-primary:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    background: rgba(255,255,255,0.06);
+    color: var(--muted);
+  }
+
+  .btn-secondary:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+  .stats {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--card);
+    border-radius: 1rem;
+    min-width: 300px;
+  }
+
+  .stat { text-align: center; }
+  .stat-value {
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: var(--current-color);
+    transition: color 0.3s;
+  }
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-top: 0.25rem;
+  }
+
+  .settings-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: 1px solid #333;
+    color: var(--muted);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.3s;
+  }
+
+  .settings-toggle:hover { border-color: #555; color: var(--text); }
+
+  .settings-panel {
+    position: fixed;
+    top: 0;
+    right: -360px;
+    width: 340px;
+    height: 100vh;
+    background: var(--card);
+    padding: 2rem;
+    transition: right 0.3s;
+    z-index: 100;
+    overflow-y: auto;
+  }
+
+  .settings-panel.open { right: 0; }
+
+  .settings-panel h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.1em;
+  }
+
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+  }
+
+  .setting-row label {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .setting-row input {
+    width: 70px;
+    padding: 0.4rem;
+    background: var(--bg);
+    border: 1px solid #333;
+    border-radius: 0.5rem;
+    color: var(--text);
+    text-align: center;
+    font-size: 0.9rem;
+  }
+
+  .setting-row input:focus { outline: none; border-color: #555; }
+
+  .settings-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1.2rem;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+    display: none;
+  }
+
+  .overlay.show { display: block; }
+
+  @media (max-width: 480px) {
+    .timer-ring { width: 220px; height: 220px; }
+    .timer-display { font-size: 3rem; }
+    .stats { min-width: auto; gap: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<button class="settings-toggle" onclick="toggleSettings()">&#9881;</button>
+
+<div class="overlay" id="overlay" onclick="toggleSettings()"></div>
+
+<div class="settings-panel" id="settingsPanel">
+  <button class="settings-close" onclick="toggleSettings()">&times;</button>
+  <h2>设置</h2>
+  <div class="setting-row">
+    <label>工作时长 (分钟)</label>
+    <input type="number" id="setWork" value="25" min="1" max="90">
+  </div>
+  <div class="setting-row">
+    <label>短休息 (分钟)</label>
+    <input type="number" id="setShort" value="5" min="1" max="30">
+  </div>
+  <div class="setting-row">
+    <label>长休息 (分钟)</label>
+    <input type="number" id="setLong" value="15" min="1" max="60">
+  </div>
+  <div class="setting-row">
+    <label>长休息间隔 (次)</label>
+    <input type="number" id="setInterval" value="4" min="2" max="8">
+  </div>
+  <div class="setting-row">
+    <label>声音提醒</label>
+    <input type="checkbox" id="setSound" checked>
+  </div>
+  <button class="btn btn-primary" onclick="applySettings()" style="margin-top:1rem;width:100%;">保存</button>
+</div>
+
+<div class="container">
+  <h1>番茄钟</h1>
+
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="work" onclick="switchMode('work')">专注</button>
+    <button class="mode-tab" data-mode="shortBreak" onclick="switchMode('shortBreak')">短休息</button>
+    <button class="mode-tab" data-mode="longBreak" onclick="switchMode('longBreak')">长休息</button>
+  </div>
+
+  <div class="timer-ring">
+    <svg viewBox="0 0 280 280">
+      <circle class="track" cx="140" cy="140" r="130"></circle>
+      <circle class="progress" id="progress" cx="140" cy="140" r="130"></circle>
+    </svg>
+    <div class="timer-display" id="timerDisplay">25:00</div>
+    <div class="timer-label" id="timerLabel">专注时间</div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-secondary" onclick="resetTimer()">重置</button>
+    <button class="btn btn-primary" id="startBtn" onclick="toggleTimer()">开始</button>
+    <button class="btn btn-secondary" onclick="skipTimer()">跳过</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value" id="pomodoroCount">0</div>
+      <div class="stat-label">已完成</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="totalMinutes">0</div>
+      <div class="stat-label">专注(分钟)</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const modes = {
+    work: { label: '专注时间', color: 'var(--work)' },
+    shortBreak: { label: '短休息', color: 'var(--short-break)' },
+    longBreak: { label: '长休息', color: 'var(--long-break)' }
+  };
+
+  let config = { work: 25, short: 5, long: 15, interval: 4, sound: true };
+  let currentMode = 'work';
+  let totalSeconds = config.work * 60;
+  let remainingSeconds = totalSeconds;
+  let timer = null;
+  let running = false;
+  let pomodoroCount = 0;
+  let totalFocusMinutes = 0;
+  let workSessionCount = 0;
+
+  const circumference = 2 * Math.PI * 130;
+  const progressEl = document.getElementById('progress');
+  const displayEl = document.getElementById('timerDisplay');
+  const labelEl = document.getElementById('timerLabel');
+  const startBtn = document.getElementById('startBtn');
+
+  progressEl.style.strokeDasharray = circumference;
+  progressEl.style.strokeDashoffset = 0;
+
+  function setCSSVar(name, val) { document.documentElement.style.setProperty(name, val); }
+
+  function updateDisplay() {
+    const m = Math.floor(remainingSeconds / 60);
+    const s = remainingSeconds % 60;
+    displayEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    const offset = circumference * (1 - remainingSeconds / totalSeconds);
+    progressEl.style.strokeDashoffset = offset;
+    document.title = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} - 番茄钟`;
+  }
+
+  function switchMode(mode) {
+    if (running) return;
+    currentMode = mode;
+    const durations = { work: config.work, shortBreak: config.short, longBreak: config.long };
+    totalSeconds = durations[mode] * 60;
+    remainingSeconds = totalSeconds;
+
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+    setCSSVar('--current-color', modes[mode].color);
+    labelEl.textContent = modes[mode].label;
+    updateDisplay();
+  }
+
+  function toggleTimer() {
+    if (running) {
+      clearInterval(timer);
+      running = false;
+      startBtn.textContent = '继续';
+    } else {
+      running = true;
+      startBtn.textContent = '暂停';
+      timer = setInterval(() => {
+        if (remainingSeconds <= 0) {
+          clearInterval(timer);
+          running = false;
+          onTimerEnd();
+          return;
+        }
+        remainingSeconds--;
+        updateDisplay();
+      }, 1000);
+    }
+  }
+
+  function resetTimer() {
+    clearInterval(timer);
+    running = false;
+    startBtn.textContent = '开始';
+    const durations = { work: config.work, shortBreak: config.short, longBreak: config.long };
+    totalSeconds = durations[currentMode] * 60;
+    remainingSeconds = totalSeconds;
+    updateDisplay();
+  }
+
+  function skipTimer() {
+    clearInterval(timer);
+    running = false;
+    onTimerEnd();
+  }
+
+  function onTimerEnd() {
+    if (currentMode === 'work') {
+      pomodoroCount++;
+      totalFocusMinutes += config.work;
+      workSessionCount++;
+      document.getElementById('pomodoroCount').textContent = pomodoroCount;
+      document.getElementById('totalMinutes').textContent = totalFocusMinutes;
+      if (workSessionCount >= config.interval) {
+        workSessionCount = 0;
+        switchMode('longBreak');
+      } else {
+        switchMode('shortBreak');
+      }
+    } else {
+      switchMode('work');
+    }
+    startBtn.textContent = '开始';
+    if (config.sound) playSound();
+    flashPage();
+  }
+
+  function playSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.2 + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.2);
+        osc.stop(ctx.currentTime + i * 0.2 + 0.4);
+      });
+    } catch (e) {}
+  }
+
+  function flashPage() {
+    document.body.style.opacity = '0.6';
+    setTimeout(() => document.body.style.opacity = '1', 150);
+    setTimeout(() => document.body.style.opacity = '0.6', 300);
+    setTimeout(() => document.body.style.opacity = '1', 450);
+  }
+
+  function toggleSettings() {
+    const panel = document.getElementById('settingsPanel');
+    const overlay = document.getElementById('overlay');
+    const open = panel.classList.toggle('open');
+    overlay.classList.toggle('show', open);
+  }
+
+  function applySettings() {
+    config.work = Math.max(1, Math.min(90, parseInt(document.getElementById('setWork').value) || 25));
+    config.short = Math.max(1, Math.min(30, parseInt(document.getElementById('setShort').value) || 5));
+    config.long = Math.max(1, Math.min(60, parseInt(document.getElementById('setLong').value) || 15));
+    config.interval = Math.max(2, Math.min(8, parseInt(document.getElementById('setInterval').value) || 4));
+    config.sound = document.getElementById('setSound').checked;
+    resetTimer();
+    toggleSettings();
+  }
+
+  // Init
+  setCSSVar('--current-color', modes.work.color);
+  updateDisplay();
+</script>
+</body>
+</html>

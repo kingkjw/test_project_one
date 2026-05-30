@@ -3,22 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>番茄钟</title>
+<title>番茄钟 · 星空</title>
 <style>
   :root {
-    --work: #e74c3c;
-    --short-break: #2ecc71;
-    --long-break: #3498db;
-    --bg: #1a1a2e;
-    --card: #16213e;
-    --text: #eee;
-    --muted: #888;
+    --work: #a855f7;
+    --work-glow: #c084fc;
+    --work-dim: #6d28d9;
+    --short-break: #34d399;
+    --short-break-glow: #5eead4;
+    --long-break: #818cf8;
+    --long-break-glow: #a5b4fc;
+    --bg: #0a0a1a;
+    --bg-soft: #0f0f24;
+    --card: rgba(255,255,255,0.04);
+    --card-border: rgba(255,255,255,0.06);
+    --text: #e8e0f0;
+    --text-dim: #7c6f94;
+    --muted: #5a4f72;
+    --ring-track: rgba(168, 85, 247, 0.1);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-family: -apple-system, 'Segoe UI', 'PingFang SC', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -26,91 +34,169 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    transition: background 0.5s;
+    overflow: hidden;
+    transition: background 0.8s;
   }
 
+  /* ── 星空画布 ── */
+  #stars {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── 流星 ── */
+  .shooting-star {
+    position: fixed;
+    width: 2px;
+    height: 80px;
+    background: linear-gradient(to bottom, rgba(168,85,247,0), rgba(168,85,247,0.8));
+    border-radius: 1px;
+    z-index: 1;
+    pointer-events: none;
+    animation: shoot 0.6s ease-out forwards;
+  }
+
+  @keyframes shoot {
+    0%   { transform: translateY(0) translateX(0) rotate(25deg); opacity: 1; }
+    100% { transform: translateY(600px) translateX(250px) rotate(25deg); opacity: 0; }
+  }
+
+  /* ── 主容器 ── */
   .container {
+    position: relative;
+    z-index: 10;
     text-align: center;
-    padding: 2rem;
+    padding: 2.5rem;
   }
 
-  h1 {
-    font-size: 1.5rem;
+  .title {
+    font-size: 1.3rem;
     font-weight: 300;
-    letter-spacing: 0.3em;
-    margin-bottom: 2rem;
+    letter-spacing: 0.4em;
+    margin-bottom: 2.5rem;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
   }
 
+  .title-star {
+    display: inline-block;
+    animation: twinkle 2s ease-in-out infinite;
+  }
+  .title-star:nth-child(1) { animation-delay: 0s; }
+  .title-star:nth-child(2) { animation-delay: 0.5s; }
+  .title-star:nth-child(3) { animation-delay: 1s; }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50%      { opacity: 1;   transform: scale(1.2); }
+  }
+
+  /* ── 模式切换 ── */
   .mode-tabs {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.6rem;
     justify-content: center;
     margin-bottom: 2.5rem;
+    flex-wrap: wrap;
   }
 
   .mode-tab {
-    padding: 0.5rem 1.2rem;
-    border: 1px solid #333;
+    padding: 0.55rem 1.3rem;
+    border: 1px solid var(--card-border);
     border-radius: 2rem;
-    background: transparent;
-    color: var(--muted);
+    background: var(--card);
+    color: var(--text-dim);
     cursor: pointer;
     font-size: 0.85rem;
-    transition: all 0.3s;
+    transition: all 0.35s;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
   }
 
-  .mode-tab:hover { border-color: #555; color: var(--text); }
-  .mode-tab.active { border-color: var(--current-color); color: var(--text); background: rgba(255,255,255,0.05); }
+  .mode-tab::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 2rem;
+    opacity: 0;
+    transition: opacity 0.35s;
+  }
 
-  .timer-ring {
+  .mode-tab:hover {
+    border-color: rgba(168,85,247,0.4);
+    color: var(--text);
+    box-shadow: 0 0 20px rgba(168,85,247,0.1);
+  }
+
+  .mode-tab.active {
+    border-color: var(--current-color);
+    color: #fff;
+    background: rgba(168,85,247,0.12);
+    box-shadow: 0 0 30px var(--current-glow-alpha, rgba(168,85,247,0.2));
+  }
+
+  /* ── 圆形进度环 ── */
+  .timer-ring-wrap {
     position: relative;
-    width: 280px;
-    height: 280px;
+    width: 300px;
+    height: 300px;
     margin: 0 auto 2rem;
   }
 
-  .timer-ring svg {
+  .timer-ring-wrap svg {
     transform: rotate(-90deg);
     width: 100%;
     height: 100%;
+    filter: drop-shadow(0 0 12px var(--current-glow-alpha, rgba(168,85,247,0.3)));
+    transition: filter 0.5s;
   }
 
-  .timer-ring circle {
+  .timer-ring-wrap circle {
     fill: none;
-    stroke-width: 4;
+    stroke-width: 3;
   }
 
-  .track { stroke: #2a2a3e; }
+  .track { stroke: var(--ring-track); }
+
   .progress {
     stroke: var(--current-color);
     stroke-linecap: round;
-    transition: stroke-dashoffset 0.5s linear, stroke 0.3s;
+    transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s;
   }
 
+  /* ── 时间显示 ── */
   .timer-display {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 4rem;
+    font-size: 4.2rem;
     font-weight: 200;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 40px var(--current-glow-alpha, rgba(168,85,247,0.4));
+    transition: text-shadow 0.5s;
   }
 
   .timer-label {
     position: absolute;
-    top: 65%;
+    top: 66%;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 0.8rem;
-    color: var(--muted);
+    font-size: 0.78rem;
+    color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.25em;
   }
 
+  /* ── 按钮 ── */
   .controls {
     display: flex;
     gap: 1rem;
@@ -119,83 +205,125 @@
   }
 
   .btn {
-    padding: 0.75rem 2rem;
+    padding: 0.7rem 1.8rem;
     border: none;
     border-radius: 2rem;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 0.05em;
+    transition: all 0.3s;
+    letter-spacing: 0.06em;
+    position: relative;
+    overflow: hidden;
   }
+
+  .btn:active { transform: scale(0.96); }
 
   .btn-primary {
-    background: var(--current-color);
+    background: linear-gradient(135deg, var(--work), var(--work-glow));
     color: #fff;
     min-width: 140px;
+    box-shadow: 0 4px 20px rgba(168,85,247,0.35);
+    transition: all 0.35s, box-shadow 0.35s;
   }
 
-  .btn-primary:hover { filter: brightness(1.1); transform: scale(1.03); }
-  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:hover {
+    box-shadow: 0 6px 30px rgba(168,85,247,0.5);
+    transform: translateY(-1px) scale(1.02);
+  }
 
   .btn-secondary {
-    background: rgba(255,255,255,0.06);
-    color: var(--muted);
+    background: var(--card);
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(8px);
   }
 
-  .btn-secondary:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+  .btn-secondary:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    border-color: rgba(168,85,247,0.3);
+    box-shadow: 0 0 15px rgba(168,85,247,0.1);
+  }
 
+  /* ── 统计卡片 ── */
   .stats {
     display: flex;
-    gap: 2rem;
+    gap: 2.5rem;
     justify-content: center;
-    padding: 1.5rem;
+    padding: 1.5rem 2rem;
     background: var(--card);
-    border-radius: 1rem;
+    border: 1px solid var(--card-border);
+    border-radius: 1.2rem;
+    backdrop-filter: blur(12px);
     min-width: 300px;
   }
 
   .stat { text-align: center; }
+
   .stat-value {
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: 300;
     color: var(--current-color);
-    transition: color 0.3s;
-  }
-  .stat-label {
-    font-size: 0.7rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-top: 0.25rem;
+    transition: color 0.5s;
+    text-shadow: 0 0 20px var(--current-glow-alpha, rgba(168,85,247,0.3));
   }
 
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    margin-top: 0.3rem;
+  }
+
+  /* ── 设置面板 ── */
   .settings-toggle {
     position: fixed;
-    top: 1rem;
-    right: 1rem;
-    background: none;
-    border: 1px solid #333;
-    color: var(--muted);
-    width: 36px;
-    height: 36px;
+    top: 1.2rem;
+    right: 1.2rem;
+    z-index: 200;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    color: var(--text-dim);
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     cursor: pointer;
     font-size: 1.1rem;
-    transition: all 0.3s;
+    transition: all 0.35s;
+    backdrop-filter: blur(8px);
   }
 
-  .settings-toggle:hover { border-color: #555; color: var(--text); }
+  .settings-toggle:hover {
+    border-color: rgba(168,85,247,0.4);
+    color: var(--text);
+    box-shadow: 0 0 20px rgba(168,85,247,0.15);
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 299;
+    display: none;
+    transition: opacity 0.35s;
+    opacity: 0;
+  }
+  .overlay.show { display: block; opacity: 1; }
 
   .settings-panel {
     position: fixed;
     top: 0;
-    right: -360px;
-    width: 340px;
+    right: -380px;
+    width: 360px;
     height: 100vh;
-    background: var(--card);
-    padding: 2rem;
-    transition: right 0.3s;
-    z-index: 100;
+    background: rgba(15,15,36,0.95);
+    border-left: 1px solid var(--card-border);
+    backdrop-filter: blur(20px);
+    padding: 2.5rem 2rem;
+    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 300;
     overflow-y: auto;
   }
 
@@ -203,73 +331,111 @@
 
   .settings-panel h2 {
     font-size: 1rem;
-    font-weight: 400;
-    margin-bottom: 1.5rem;
-    letter-spacing: 0.1em;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    color: var(--text);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
+
+  .settings-close {
+    position: absolute;
+    top: 1.2rem;
+    right: 1.2rem;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: color 0.3s;
+  }
+
+  .settings-close:hover { color: var(--text); }
 
   .setting-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.3rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
   }
 
   .setting-row label {
     font-size: 0.85rem;
-    color: var(--muted);
+    color: var(--text-dim);
   }
 
-  .setting-row input {
+  .setting-row input[type="number"] {
     width: 70px;
-    padding: 0.4rem;
-    background: var(--bg);
-    border: 1px solid #333;
-    border-radius: 0.5rem;
+    padding: 0.45rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--card-border);
+    border-radius: 0.6rem;
     color: var(--text);
     text-align: center;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    transition: all 0.3s;
   }
 
-  .setting-row input:focus { outline: none; border-color: #555; }
+  .setting-row input[type="number"]:focus {
+    outline: none;
+    border-color: rgba(168,85,247,0.5);
+    box-shadow: 0 0 12px rgba(168,85,247,0.1);
+  }
 
-  .settings-close {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: none;
-    border: none;
-    color: var(--muted);
+  .setting-row input[type="checkbox"] {
+    accent-color: #a855f7;
+    width: 18px;
+    height: 18px;
     cursor: pointer;
-    font-size: 1.2rem;
   }
 
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 99;
-    display: none;
+  .btn-save {
+    margin-top: 1.5rem;
+    width: 100%;
+    padding: 0.8rem;
+    background: linear-gradient(135deg, var(--work), var(--work-glow));
+    color: #fff;
+    border: none;
+    border-radius: 2rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(168,85,247,0.3);
   }
 
-  .overlay.show { display: block; }
+  .btn-save:hover {
+    box-shadow: 0 6px 30px rgba(168,85,247,0.5);
+    transform: translateY(-1px);
+  }
 
+  /* ── 响应式 ── */
   @media (max-width: 480px) {
-    .timer-ring { width: 220px; height: 220px; }
-    .timer-display { font-size: 3rem; }
-    .stats { min-width: auto; gap: 1.5rem; }
+    .timer-ring-wrap { width: 240px; height: 240px; }
+    .timer-display { font-size: 3.2rem; }
+    .stats { min-width: auto; gap: 1.5rem; padding: 1.2rem 1.5rem; }
+    .setting-row { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+    .settings-panel { width: 300px; }
   }
 </style>
 </head>
 <body>
 
-<button class="settings-toggle" onclick="toggleSettings()">&#9881;</button>
+<!-- 星空画布 -->
+<canvas id="stars"></canvas>
 
+<!-- 设置按钮 -->
+<button class="settings-toggle" onclick="toggleSettings()">&#9881;</button>
 <div class="overlay" id="overlay" onclick="toggleSettings()"></div>
 
+<!-- 设置面板 -->
 <div class="settings-panel" id="settingsPanel">
   <button class="settings-close" onclick="toggleSettings()">&times;</button>
-  <h2>设置</h2>
+  <h2>&#9790; 设置</h2>
   <div class="setting-row">
     <label>工作时长 (分钟)</label>
     <input type="number" id="setWork" value="25" min="1" max="90">
@@ -290,22 +456,25 @@
     <label>声音提醒</label>
     <input type="checkbox" id="setSound" checked>
   </div>
-  <button class="btn btn-primary" onclick="applySettings()" style="margin-top:1rem;width:100%;">保存</button>
+  <button class="btn-save" onclick="applySettings()">保存</button>
 </div>
 
+<!-- 主界面 -->
 <div class="container">
-  <h1>番茄钟</h1>
-
-  <div class="mode-tabs">
-    <button class="mode-tab active" data-mode="work" onclick="switchMode('work')">专注</button>
-    <button class="mode-tab" data-mode="shortBreak" onclick="switchMode('shortBreak')">短休息</button>
-    <button class="mode-tab" data-mode="longBreak" onclick="switchMode('longBreak')">长休息</button>
+  <div class="title">
+    <span class="title-star">&#10022;</span> 番茄钟 <span class="title-star">&#10022;</span>
   </div>
 
-  <div class="timer-ring">
-    <svg viewBox="0 0 280 280">
-      <circle class="track" cx="140" cy="140" r="130"></circle>
-      <circle class="progress" id="progress" cx="140" cy="140" r="130"></circle>
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="work" onclick="switchMode('work')">&#x1F331; 专注</button>
+    <button class="mode-tab" data-mode="shortBreak" onclick="switchMode('shortBreak')">&#x2615; 短休息</button>
+    <button class="mode-tab" data-mode="longBreak" onclick="switchMode('longBreak')">&#x1F31F; 长休息</button>
+  </div>
+
+  <div class="timer-ring-wrap">
+    <svg viewBox="0 0 300 300">
+      <circle class="track" cx="150" cy="150" r="140"></circle>
+      <circle class="progress" id="progress" cx="150" cy="150" r="140"></circle>
     </svg>
     <div class="timer-display" id="timerDisplay">25:00</div>
     <div class="timer-label" id="timerLabel">专注时间</div>
@@ -324,165 +493,265 @@
     </div>
     <div class="stat">
       <div class="stat-value" id="totalMinutes">0</div>
-      <div class="stat-label">专注(分钟)</div>
+      <div class="stat-label">专注 (分钟)</div>
     </div>
   </div>
 </div>
 
 <script>
-  const modes = {
-    work: { label: '专注时间', color: 'var(--work)' },
-    shortBreak: { label: '短休息', color: 'var(--short-break)' },
-    longBreak: { label: '长休息', color: 'var(--long-break)' }
-  };
+// ═══════════════════════════════════════
+//  星空粒子系统
+// ═══════════════════════════════════════
+(function initStars() {
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  const STAR_COUNT = 180;
 
-  let config = { work: 25, short: 5, long: 15, interval: 4, sound: true };
-  let currentMode = 'work';
-  let totalSeconds = config.work * 60;
-  let remainingSeconds = totalSeconds;
-  let timer = null;
-  let running = false;
-  let pomodoroCount = 0;
-  let totalFocusMinutes = 0;
-  let workSessionCount = 0;
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
 
-  const circumference = 2 * Math.PI * 130;
-  const progressEl = document.getElementById('progress');
-  const displayEl = document.getElementById('timerDisplay');
-  const labelEl = document.getElementById('timerLabel');
-  const startBtn = document.getElementById('startBtn');
-
-  progressEl.style.strokeDasharray = circumference;
-  progressEl.style.strokeDashoffset = 0;
-
-  function setCSSVar(name, val) { document.documentElement.style.setProperty(name, val); }
-
-  function updateDisplay() {
-    const m = Math.floor(remainingSeconds / 60);
-    const s = remainingSeconds % 60;
-    displayEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    const offset = circumference * (1 - remainingSeconds / totalSeconds);
-    progressEl.style.strokeDashoffset = offset;
-    document.title = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} - 番茄钟`;
+  function randomStar() {
+    return {
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.6 + 0.3,
+      alpha: Math.random(),
+      pulse: Math.random() * 0.02 + 0.005,
+      growing: true,
+      hue: 260 + Math.random() * 40, // purple range
+    };
   }
 
-  function switchMode(mode) {
-    if (running) return;
-    currentMode = mode;
-    const durations = { work: config.work, shortBreak: config.short, longBreak: config.long };
-    totalSeconds = durations[mode] * 60;
-    remainingSeconds = totalSeconds;
+  for (let i = 0; i < STAR_COUNT; i++) stars.push(randomStar());
 
-    document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
-    setCSSVar('--current-color', modes[mode].color);
-    labelEl.textContent = modes[mode].label;
-    updateDisplay();
-  }
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  function toggleTimer() {
-    if (running) {
-      clearInterval(timer);
-      running = false;
-      startBtn.textContent = '继续';
-    } else {
-      running = true;
-      startBtn.textContent = '暂停';
-      timer = setInterval(() => {
-        if (remainingSeconds <= 0) {
-          clearInterval(timer);
-          running = false;
-          onTimerEnd();
-          return;
-        }
-        remainingSeconds--;
-        updateDisplay();
-      }, 1000);
-    }
-  }
-
-  function resetTimer() {
-    clearInterval(timer);
-    running = false;
-    startBtn.textContent = '开始';
-    const durations = { work: config.work, shortBreak: config.short, longBreak: config.long };
-    totalSeconds = durations[currentMode] * 60;
-    remainingSeconds = totalSeconds;
-    updateDisplay();
-  }
-
-  function skipTimer() {
-    clearInterval(timer);
-    running = false;
-    onTimerEnd();
-  }
-
-  function onTimerEnd() {
-    if (currentMode === 'work') {
-      pomodoroCount++;
-      totalFocusMinutes += config.work;
-      workSessionCount++;
-      document.getElementById('pomodoroCount').textContent = pomodoroCount;
-      document.getElementById('totalMinutes').textContent = totalFocusMinutes;
-      if (workSessionCount >= config.interval) {
-        workSessionCount = 0;
-        switchMode('longBreak');
+    for (const s of stars) {
+      // Pulse
+      if (s.growing) {
+        s.alpha += s.pulse;
+        if (s.alpha >= 0.9) s.growing = false;
       } else {
-        switchMode('shortBreak');
+        s.alpha -= s.pulse;
+        if (s.alpha <= 0.15) s.growing = true;
       }
-    } else {
-      switchMode('work');
+
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${s.hue}, 70%, 75%, ${s.alpha})`;
+      ctx.fill();
+
+      // Occasional glow
+      if (s.alpha > 0.7 && s.r > 1) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${s.hue}, 80%, 70%, ${s.alpha * 0.08})`;
+        ctx.fill();
+      }
     }
-    startBtn.textContent = '开始';
-    if (config.sound) playSound();
-    flashPage();
+
+    requestAnimationFrame(draw);
   }
 
-  function playSound() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [523.25, 659.25, 783.99];
-      notes.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.2);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.2 + 0.4);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + i * 0.2);
-        osc.stop(ctx.currentTime + i * 0.2 + 0.4);
-      });
-    } catch (e) {}
-  }
+  draw();
 
-  function flashPage() {
-    document.body.style.opacity = '0.6';
-    setTimeout(() => document.body.style.opacity = '1', 150);
-    setTimeout(() => document.body.style.opacity = '0.6', 300);
-    setTimeout(() => document.body.style.opacity = '1', 450);
+  // 流星
+  function spawnShootingStar() {
+    const star = document.createElement('div');
+    star.className = 'shooting-star';
+    star.style.left = Math.random() * 80 + '%';
+    star.style.top = -(Math.random() * 200) + 'px';
+    document.body.appendChild(star);
+    setTimeout(() => star.remove(), 700);
   }
+  setInterval(() => {
+    if (Math.random() < 0.25) spawnShootingStar();
+  }, 4000);
+})();
 
-  function toggleSettings() {
-    const panel = document.getElementById('settingsPanel');
-    const overlay = document.getElementById('overlay');
-    const open = panel.classList.toggle('open');
-    overlay.classList.toggle('show', open);
-  }
+// ═══════════════════════════════════════
+//  番茄钟逻辑
+// ═══════════════════════════════════════
+const modes = {
+  work:      { label: '专注时间', color: 'var(--work)',       glow: 'rgba(168,85,247,0.35)' },
+  shortBreak:{ label: '短休息',   color: 'var(--short-break)', glow: 'rgba(52,211,153,0.3)' },
+  longBreak: { label: '长休息',   color: 'var(--long-break)',  glow: 'rgba(129,140,248,0.35)' }
+};
 
-  function applySettings() {
-    config.work = Math.max(1, Math.min(90, parseInt(document.getElementById('setWork').value) || 25));
-    config.short = Math.max(1, Math.min(30, parseInt(document.getElementById('setShort').value) || 5));
-    config.long = Math.max(1, Math.min(60, parseInt(document.getElementById('setLong').value) || 15));
-    config.interval = Math.max(2, Math.min(8, parseInt(document.getElementById('setInterval').value) || 4));
-    config.sound = document.getElementById('setSound').checked;
-    resetTimer();
-    toggleSettings();
-  }
+let config = { work: 25, short: 5, long: 15, interval: 4, sound: true };
+let currentMode = 'work';
+let totalSeconds = config.work * 60;
+let remainingSeconds = totalSeconds;
+let timer = null;
+let running = false;
+let pomodoroCount = 0;
+let totalFocusMinutes = 0;
+let workSessionCount = 0;
 
-  // Init
-  setCSSVar('--current-color', modes.work.color);
+const circumference = 2 * Math.PI * 140;
+const progressEl = document.getElementById('progress');
+const displayEl = document.getElementById('timerDisplay');
+const labelEl = document.getElementById('timerLabel');
+const startBtn = document.getElementById('startBtn');
+const root = document.documentElement;
+const timerRingWrap = document.querySelector('.timer-ring-wrap');
+const statValues = document.querySelectorAll('.stat-value');
+
+progressEl.style.strokeDasharray = circumference;
+progressEl.style.strokeDashoffset = 0;
+
+function setCSSVar(name, val) { root.style.setProperty(name, val); }
+
+function updateDisplay() {
+  const m = Math.floor(remainingSeconds / 60);
+  const s = remainingSeconds % 60;
+  displayEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  const offset = circumference * (1 - remainingSeconds / totalSeconds);
+  progressEl.style.strokeDashoffset = offset;
+  document.title = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} · 番茄钟`;
+}
+
+function switchMode(mode) {
+  if (running) return;
+  currentMode = mode;
+  const durations = { work: config.work, shortBreak: config.short, longBreak: config.long };
+  totalSeconds = durations[mode] * 60;
+  remainingSeconds = totalSeconds;
+
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+
+  const m = modes[mode];
+  setCSSVar('--current-color', m.color);
+  setCSSVar('--current-glow-alpha', m.glow);
+
+  // Animate ring glow
+  timerRingWrap.querySelector('svg').style.filter = `drop-shadow(0 0 14px ${m.glow})`;
+
+  // Animate stat color
+  statValues.forEach(el => el.style.color = m.color);
+
+  labelEl.textContent = m.label;
   updateDisplay();
+}
+
+function toggleTimer() {
+  if (running) {
+    clearInterval(timer);
+    running = false;
+    startBtn.textContent = '继续';
+    startBtn.style.opacity = '0.85';
+  } else {
+    running = true;
+    startBtn.textContent = '暂停';
+    startBtn.style.opacity = '1';
+    timer = setInterval(() => {
+      if (remainingSeconds <= 0) {
+        clearInterval(timer);
+        running = false;
+        onTimerEnd();
+        return;
+      }
+      remainingSeconds--;
+      updateDisplay();
+    }, 1000);
+  }
+}
+
+function resetTimer() {
+  clearInterval(timer);
+  running = false;
+  startBtn.textContent = '开始';
+  startBtn.style.opacity = '1';
+  const durations = { work: config.work, shortBreak: config.short, longBreak: config.long };
+  totalSeconds = durations[currentMode] * 60;
+  remainingSeconds = totalSeconds;
+  updateDisplay();
+}
+
+function skipTimer() {
+  clearInterval(timer);
+  running = false;
+  onTimerEnd();
+}
+
+function onTimerEnd() {
+  if (currentMode === 'work') {
+    pomodoroCount++;
+    totalFocusMinutes += config.work;
+    workSessionCount++;
+    document.getElementById('pomodoroCount').textContent = pomodoroCount;
+    document.getElementById('totalMinutes').textContent = totalFocusMinutes;
+
+    if (workSessionCount >= config.interval) {
+      workSessionCount = 0;
+      switchMode('longBreak');
+    } else {
+      switchMode('shortBreak');
+    }
+  } else {
+    switchMode('work');
+  }
+  startBtn.textContent = '开始';
+  startBtn.style.opacity = '1';
+  if (config.sound) playChime();
+  pulseRing();
+}
+
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Purple-tuned chime: gentle ascending triad
+    const notes = [392, 523.25, 659.25, 783.99]; // G4, C5, E5, G5
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.22, ctx.currentTime + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + i * 0.18 + 0.55);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.18);
+      osc.stop(ctx.currentTime + i * 0.18 + 0.55);
+    });
+  } catch (e) {}
+}
+
+function pulseRing() {
+  const ring = timerRingWrap;
+  ring.style.transform = 'scale(1.04)';
+  ring.style.transition = 'transform 0.2s ease-out';
+  setTimeout(() => { ring.style.transform = 'scale(1)'; }, 200);
+}
+
+function toggleSettings() {
+  const panel = document.getElementById('settingsPanel');
+  const overlay = document.getElementById('overlay');
+  const open = panel.classList.toggle('open');
+  overlay.classList.toggle('show', open);
+}
+
+function applySettings() {
+  config.work     = Math.max(1, Math.min(90, parseInt(document.getElementById('setWork').value) || 25));
+  config.short    = Math.max(1, Math.min(30, parseInt(document.getElementById('setShort').value) || 5));
+  config.long     = Math.max(1, Math.min(60, parseInt(document.getElementById('setLong').value) || 15));
+  config.interval = Math.max(2, Math.min(8, parseInt(document.getElementById('setInterval').value) || 4));
+  config.sound    = document.getElementById('setSound').checked;
+  resetTimer();
+  toggleSettings();
+}
+
+// Init
+setCSSVar('--current-color', modes.work.color);
+setCSSVar('--current-glow-alpha', modes.work.glow);
+timerRingWrap.querySelector('svg').style.filter = `drop-shadow(0 0 14px ${modes.work.glow})`;
+updateDisplay();
 </script>
 </body>
 </html>
